@@ -3,7 +3,7 @@ import time
 from tinydb import TinyDB, Query
 from pathlib import Path
 
-userdb = TinyDB(Path("data/per-instance/userdb.json"))
+userdb = TinyDB(Path("data/userdb.json"))
 
 class DatabaseError(LookupError):
     pass
