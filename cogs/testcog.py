@@ -69,6 +69,14 @@ class TestCog(commands.GroupCog, group_name="testing"):
         """
         pass
 
+    @app_commands.command(name="echo")
+    async def echo(self, interaction: discord.Interaction, string: str):
+        """
+        Echoes a string. Also prints it out to the console."""
+        print(string)
+        await interaction.response.send_message(string, ephemeral=True)
+
+
 # The `setup` function is required for the cog to work
 # Don't change anything in this function, except for the
 # name of the cog (Example) to the name of your class.
