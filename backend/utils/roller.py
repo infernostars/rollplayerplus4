@@ -5,6 +5,7 @@ from enum import StrEnum, Enum, auto
 from typing import TypeVar, Generic, Type, Any, Optional, List, Tuple
 from discord import Colour
 
+
 def interpolate_color_hsv(value, min_val, max_val):
     """
     Interpolates between red and green in HSV space to avoid brown-like shades.
@@ -55,7 +56,7 @@ class OperationEnum(StrEnum):
 
 class RollException(BaseException):
     def __init__(self, information):
-        super.__init__(self)
+        super().__init__()
         self.information = information
 
 
@@ -225,7 +226,10 @@ class BasicDice:
             range_part = input_string[1:]  # Exclude the 'd' to get the range part
         else:
             count_part, range_part = input_string.split('d')
-            count = int(count_part) if count_part.isdigit() else 1
+            count = min(int(count_part), 10001) if count_part.isdigit() else 1
+
+        if count == 10001:
+            raise RollException("Dice count limit exceeded [max 10000]")
 
         # Check if there's a colon in the range part
         if not range_part:
@@ -256,89 +260,94 @@ class RollResult:
         self.rolls = rolls
         self.original_rolls = original_rolls
 
-    def _format_rolls(self):
+    def _format_rolls(self, rolls: list[int]):
         # Convert numbers close to an integer to int, then to string
-        formatted_nums = [str(int(x)) if abs(x - round(x)) < 0.000000001 else str(x) for x in self.rolls]
+        formatted_nums = [str(int(x)) if abs(x - round(x)) < 0.000000001 else str(x) for x in rolls]
         # Join the stringified numbers with commas
         return ', '.join(formatted_nums)
 
-    def _format_and_split_rolls(self, n):
+    def _format_and_split_rolls(self, rolls: list[int], n: int):
         # Convert numbers close to an integer to int, then to string
-        formatted_nums = [str(int(x)) if abs(x - round(x)) < 0.000000001 else str(x) for x in self.rolls]
+        formatted_nums = [str(int(x)) if abs(x - round(x)) < 0.000000001 else str(x) for x in rolls]
         # Split the list into chunks of size n, join each chunk with commas, then join chunks with newlines
         return '\n'.join(', '.join(formatted_nums[i:i + n]) for i in range(0, len(formatted_nums), n))
 
-    def _format_and_split_rolls__repr__(self, n):
+    def _format_and_split_rolls__repr__(self, rolls: list[int], n: int):
         # Convert numbers close to an integer to int, then to string
-        formatted_nums = [str(int(x)) if abs(x - round(x)) < 0.000000001 else str(x) for x in self.rolls]
+        formatted_nums = [str(int(x)) if abs(x - round(x)) < 0.000000001 else str(x) for x in rolls]
         # Split the list into chunks of size n, join each chunk with commas, then join chunks with newlines
         return '\n┃ '.join(', '.join(formatted_nums[i:i + n]) for i in range(0, len(formatted_nums), n))
 
-    def _format_sum(self):
+    def _format_sum(self, rolls: list[int]):
         # Convert close to an integer to int, then to string
-        formatted_sum = str(int(self.sum())) if abs(self.sum() - round(self.sum())) < 0.000000001 else str(self.sum())
+        formatted_sum = str(int(sum(rolls))) if abs(sum(rolls) - round(sum(rolls))) < 0.000000001 else str(sum(rolls))
         return formatted_sum
 
     def __repr__(self):
-        return f"┏━━━━ {self.roll_string} ━━━━ \n┃ {self._format_and_split_rolls__repr__(20)}\n┃ sum: {self._format_sum()}"
-
-    def sum(self):
-        return sum(self.rolls)
+        return f"┏━━━━ {self.roll_string} ━━━━ \n┃ {self._format_and_split_rolls__repr__(self.rolls, 20)}\n┃ sum: {self._format_sum(self.rolls)}"
 
     def format(self, format: list[list[RollResultFormatting, Any]]) -> List[tuple[str, str]]:
-        roll_icon = "<:roll_icon:1223801360273903656>"
+        # roll_icon = "<:roll_icon:1223801360273903656>"
+        roll_icon = ""
 
-        if format[0][0] == RollResultFormatting.FORMAT_DEFAULT:
-            if self.rolls == self.original_rolls:
-                return [(f"{roll_icon} You rolled a {self.roll_string} and got...",
-                         f"{self._format_rolls()} (sum: **{self.sum()}**)")]
-            else:
-                return [(f"{roll_icon} You rolled a {self.roll_string} and got...",
-                         f"{self._format_rolls()} (sum: **{self.sum()}**)"),
-                        (f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
-                         f"{self._format_rolls()} (sum: **{self.sum()}**)")
-                        ]
-        if format[0][0] == RollResultFormatting.FORMAT_SUM:
-            if self.rolls == self.original_rolls:
-                return [(f"{roll_icon} You rolled a {self.roll_string} and got...",
-                         f"**{self.sum()}**")]
-            else:
-                return [(f"{roll_icon} You rolled a {self.roll_string} and got...",
-                         f"**{self.sum()}**"),
-                        (f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
-                         f"**{self.sum()}**")
-                        ]
-        if format[0][0] == RollResultFormatting.FORMAT_LIST:
-            if self.rolls == self.original_rolls:
-                return [(f"{roll_icon} You rolled a {self.roll_string} and got...",
-                         f"{self._format_rolls()}")]
-            else:
-                return [(f"{roll_icon} You rolled a {self.roll_string} and got...",
-                         f"{self._format_rolls()}"),
-                        (f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
-                         f"{self._format_rolls()}")
-                        ]
-        if format[0][0] == RollResultFormatting.FORMAT_LIST_SPLIT:
-            if self.rolls == self.original_rolls:
-                return [(f"{roll_icon} You rolled a {self.roll_string} and got...",
-                         f"{self._format_and_split_rolls__repr__(format[0][1])}")]
-            else:
-                return [(f"{roll_icon} You rolled a {self.roll_string} and got...",
-                         f"{self._format_and_split_rolls__repr__(format[0][1])}"),
-                        (f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
-                         f"{self._format_and_split_rolls__repr__(format[0][1])}")
-                        ]
+        results = []
+        for formatting in format:
+            format_type = formatting[0]
+            format_args = formatting[1] if len(formatting) > 1 else None
 
-        # base case
-        if self.rolls == self.original_rolls:
-            return [(f"{roll_icon} You rolled a {self.roll_string} and got...",
-                     f"{self._format_rolls()} (sum: **{self.sum()}**)")]
-        else:
-            return [(f"{roll_icon} You rolled a {self.roll_string} and got...",
-                     f"{self._format_rolls()} (sum: **{self.sum()}**)"),
-                    (f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
-                     f"{self._format_rolls()} (sum: **{self.sum()}**)")
-                    ]
+            if format_type == RollResultFormatting.FORMAT_DEFAULT:
+                results.append((
+                    f"{roll_icon} You rolled a {self.roll_string} and got...",
+                    self._format_rolls(self.rolls)
+                ))
+                if self.rolls != self.original_rolls:
+                    results.append((
+                        f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
+                        self._format_rolls(self.original_rolls)
+                    ))
+            elif format_type == RollResultFormatting.FORMAT_SUM:
+                results.append((
+                    f"{roll_icon} You rolled a {self.roll_string} and got...",
+                    self._format_sum(self.rolls)
+                ))
+                if self.rolls != self.original_rolls:
+                    results.append((
+                        f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
+                        self._format_sum(self.original_rolls)
+                    ))
+            elif format_type == RollResultFormatting.FORMAT_LIST:
+                results.append((
+                    f"{roll_icon} You rolled a {self.roll_string} and got...",
+                    self._format_rolls(self.rolls)
+                ))
+                if self.rolls != self.original_rolls:
+                    results.append((
+                        f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
+                        self._format_rolls(self.original_rolls)
+                    ))
+            elif format_type == RollResultFormatting.FORMAT_LIST_SPLIT:
+                results.append((
+                    f"{roll_icon} You rolled a {self.roll_string} and got...",
+                    self._format_and_split_rolls__repr__(self.rolls, format_args)
+                ))
+                if self.rolls != self.original_rolls:
+                    results.append((
+                        f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
+                        self._format_and_split_rolls__repr__(self.original_rolls, format_args)
+                    ))
+            else:
+                # base case
+                results.append((
+                    f"{roll_icon} You rolled a {self.roll_string} and got...",
+                    self._format_rolls(self.rolls)
+                ))
+                if self.rolls != self.original_rolls:
+                    results.append((
+                        f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
+                        self._format_rolls(self.original_rolls)
+                    ))
+
+        return results
 
 
 class SolveMode(StrEnum):

@@ -2,7 +2,8 @@
 from typing import Optional
 
 from backend.utils.logging import log
-from backend.utils.roller import UnifiedDice, RollResult, RollResultFormatting, SolveMode, interpolate_color_hsv
+from backend.utils.lerp import interpolate_color_hsv, normalize
+from backend.utils.roller import UnifiedDice, RollResultFormatting, SolveMode, RollException
 from backend.utils.embed_templates import embed_template, error_template
 from backend.utils.database import userdb, create_new_user
 
@@ -29,26 +30,65 @@ class RollCog(commands.Cog):
         app_commands.Choice(name="List only", value="format_list"),
         app_commands.Choice(name="List only (split at every 20 rolls)", value="format_list_split"),
     ])
-    async def roll(self, interaction: discord.Interaction, rolls: str, formatting: Optional[app_commands.Choice[str]]):
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    async def roll(self, interaction: discord.Interaction, rolls: Optional[str], formatting: Optional[app_commands.Choice[str]]):
         """
-        Rolls a die [singular for now, I'm lazy]
+        Rolls one or more dice.
 
         Parameters
         ------------
         rolls: str
-            The rolls to... roll.
+            The rolls to roll, separated by spaces. For example: "1d100 2d20 1d6".
         formatting: Optional[app_commands.Choice[RollResultFormatting]]
             The format to show the results in. Defaults to a list view followed by sum.
         """
-        rolls_split = rolls.split(" ")
-        result = UnifiedDice.new(rolls_split[0]).solve(SolveMode.RANDOM)
-        result_min = UnifiedDice.new(rolls_split[0]).solve(SolveMode.MIN)
-        result_max = UnifiedDice.new(rolls_split[0]).solve(SolveMode.MAX)
-        embed = embed_template(f"--- {rolls} ---")
-        print(result.sum(), result_min.sum(), result_max.sum())
-        embed.color = interpolate_color_hsv(result.sum(), result_min.sum(), result_max.sum())
-        for tuple in result.format([[RollResultFormatting(formatting.value), 20]]):
-            embed.add_field(name=tuple[0], value=tuple[1])
+        if not rolls:
+            rolls = "1d100"
+
+        # Split the input string into individual roll expressions
+        roll_expressions = rolls.split()
+
+        results = []
+        result_mins = []
+        result_maxs = []
+
+        # Roll each expression and collect the results
+        for roll_expression in roll_expressions:
+            try:
+                result = UnifiedDice.new(roll_expression).solve(SolveMode.RANDOM)
+                result_min = UnifiedDice.new(roll_expression).solve(SolveMode.MIN)
+                result_max = UnifiedDice.new(roll_expression).solve(SolveMode.MAX)
+                results.append(result)
+                result_mins.append(result_min)
+                result_maxs.append(result_max)
+            except RollException as exc:
+                await interaction.response.send_message(embed=error_template(exc.information))
+                return
+
+        try:
+            format = RollResultFormatting(formatting.value)
+        except:
+            format = RollResultFormatting.FORMAT_DEFAULT
+
+        embed = embed_template(f"--- {' '.join(roll_expressions)} ---")
+
+        normalized_results = [normalize(sum(mini.rolls), sum(maxi.rolls), sum(result.rolls)) for mini, maxi, result in zip(result_mins, result_maxs, results)]
+        normalized_color_value = sum(normalized_results) / len(normalized_results)
+
+        embed.color = interpolate_color_hsv(normalized_color_value)
+
+        for i, result in enumerate(results):
+            try:
+                for tuple in result.format([[format, 20]]):
+                    if len(tuple[1]) > 1024:
+                        raise RollException("Roll result too long.")
+                    embed.add_field(name=f"{tuple[0]}", value=tuple[1], inline=False)
+            except:
+                embed.add_field(name=f"{roll_expressions[i]} - Your result was too long, so the format changed to sum only.", value="", inline=False)
+                for tuple in result.format([[RollResultFormatting.FORMAT_SUM, 20]]):
+                    embed.add_field(name=tuple[0], value=tuple[1])
+
         await interaction.response.send_message(embed=embed)
 
 
