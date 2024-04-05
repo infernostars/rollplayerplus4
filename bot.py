@@ -27,7 +27,7 @@ class RollplayerBot(commands.Bot):
             await self.tree.sync(guild=bot.get_guild(sync_server))
 
 
-intents = discord.Intents.all()
+intents = discord.Intents.none()
 
 bot = RollplayerBot(intents=intents, command_prefix="r!")  # Setting prefix
 

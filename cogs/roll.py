@@ -18,6 +18,7 @@ class RollCog(commands.Cog):
     def __init__(self, client):
         self.client = client
 
+
     # Use @command.Cog.listener() for an event-listener (on_message, on_ready, etc.)
     @commands.Cog.listener()
     async def on_ready(self):
@@ -90,6 +91,24 @@ class RollCog(commands.Cog):
                     embed.add_field(name=tuple[0], value=tuple[1])
 
         await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="roll_help")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    async def help(self, interaction: discord.Interaction):
+        """
+        Help with /roll's syntax.
+        """
+        await interaction.response.send_message("""The syntax of a roll is composed of 3 parts.
+`xdy+z` - x is the amount of dice rolled, y is the size of the die, and z is a modifier. x and z can be omitted, but y cannot (unless you enter nothing, which will roll a base d100).
+First, y can be either a number, like 100, in which case the roll is between 1 and that maximum (inclusive),
+Or it can be a range, like 50:100, in which case it will roll between both extremes (still inclusive).
+Next, there are modifiers. The most basic type is math operations, like +, -, \*, and /. You can tack them onto a roll (like `d100+5*3`) and they will modify the result of the roll (in order, no PEMDAS).
+Then you have the i operator, the most complex one. It lets you choose which rolls will be affected by modifiers. This can best be explained with two examples:
+- `3d100i1,3:+20` will roll 3 dice and then add 20 to the first and third.
+- `3d100i1,3:+20;2,-5` will do the same, and then subtract 5 from the second.
+Lastly, you can roll multiple different sets of dice in the same command (like `5d100+5 5d100`).
+That should be all you need to know about rolling with Rollplayer!""", ephemeral=True)
 
 
 # The `setup` function is required for the cog to work
