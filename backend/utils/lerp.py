@@ -19,6 +19,8 @@ def normalize(min_val, max_val, value):
         return 0.0
     elif value > max_val:
         return 1.0
+    elif min_val == max_val:
+        return 0.5
     else:
         return (value - min_val) / (max_val - min_val)
 

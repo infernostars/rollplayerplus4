@@ -328,12 +328,12 @@ class RollResult:
             elif format_type == RollResultFormatting.FORMAT_LIST_SPLIT:
                 results.append((
                     f"{roll_icon} You rolled a {self.roll_string} and got...",
-                    self._format_and_split_rolls__repr__(self.rolls, format_args)
+                    self._format_and_split_rolls(self.rolls, format_args)
                 ))
                 if self.rolls != self.original_rolls:
                     results.append((
                         f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
-                        self._format_and_split_rolls__repr__(self.original_rolls, format_args)
+                        self._format_and_split_rolls(self.original_rolls, format_args)
                     ))
             else:
                 # base case
