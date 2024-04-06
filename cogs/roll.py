@@ -103,7 +103,7 @@ class RollCog(commands.Cog):
 `xdy+z` - x is the amount of dice rolled, y is the size of the die, and z is a modifier. x and z can be omitted, but y cannot (unless you enter nothing, which will roll a base d100).
 First, y can be either a number, like 100, in which case the roll is between 1 and that maximum (inclusive),
 Or it can be a range, like 50:100, in which case it will roll between both extremes (still inclusive).
-Next, there are modifiers. The most basic type is math operations, like +, -, \*, and /. You can tack them onto a roll (like `d100+5*3`) and they will modify the result of the roll (in order, no PEMDAS).
+Next, there are modifiers. The most basic type is math operations, like +, -, \\*, and /. You can tack them onto a roll (like `d100+5*3`) and they will modify the result of the roll (in order, no PEMDAS).
 Then you have the i operator, the most complex one. It lets you choose which rolls will be affected by modifiers. This can best be explained with two examples:
 - `3d100i1,3:+20` will roll 3 dice and then add 20 to the first and third.
 - `3d100i1,3:+20;2,-5` will do the same, and then subtract 5 from the second.
@@ -113,7 +113,6 @@ That should be all you need to know about rolling with Rollplayer!""", ephemeral
 
 # The `setup` function is required for the cog to work
 # Don't change anything in this function, except for the
-# name of the cog (Example) to the name of your class.
+# name of the cog to the name of your class.
 async def setup(client):
-    # Here, `Example` is the name of the class
     await client.add_cog(RollCog(client))

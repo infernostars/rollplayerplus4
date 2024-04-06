@@ -1,5 +1,6 @@
 # Importing our custom variables/functions from backend
 import random
+import sys
 from typing import Optional
 
 from backend.utils.logging import log
@@ -15,34 +16,29 @@ from discord.ext import commands
 from tinydb import Query
 
 
-class ChooseCog(commands.Cog):
+class InfoCog(commands.Cog):
     def __init__(self, client):
         self.client = client
 
     @commands.Cog.listener()
     async def on_ready(self):
-        log.info("Cog: choose loaded")
+        log.info("Cog: info loaded")
 
-    @app_commands.command(name="choose")
+    @app_commands.command(name="info")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    async def choose(self, interaction: discord.Interaction, options: str):
+    async def info(self, interaction: discord.Interaction):
         """
-        Rolls one or more dice.
-
-        Parameters
-        ------------
-        options: str
-            A list of options, split by |s.
+        Info about the bot.
         """
-        option_list = options.split("|")
-        option_list = [x.strip() for x in option_list]
-        await interaction.response.send_message(embed=embed_template(f"let's pick... {random.choice(option_list)}."))
-
+        embed = embed_template("Bot Info")
+        embed.add_field(name="Python version", value=sys.version)
+        embed.add_field(name="discord.py version", value=discord.__version__)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 # The `setup` function is required for the cog to work
 # Don't change anything in this function, except for the
-# name of the cogto the name of your class.
+# name of the cog to the name of your class.
 async def setup(client):
-    await client.add_cog(ChooseCog(client))
+    await client.add_cog(InfoCog(client))
