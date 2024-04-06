@@ -33,7 +33,7 @@ class RollCog(commands.Cog):
     ])
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    async def roll(self, interaction: discord.Interaction, rolls: Optional[str], formatting: Optional[app_commands.Choice[str]]):
+    async def roll(self, interaction: discord.Interaction, rolls: str, formatting: Optional[app_commands.Choice[str]]):
         """
         Rolls one or more dice.
 

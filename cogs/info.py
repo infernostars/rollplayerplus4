@@ -3,6 +3,7 @@ import random
 import sys
 from typing import Optional
 
+from backend.config import version
 from backend.utils.logging import log
 from backend.utils.lerp import interpolate_color_hsv, normalize
 from backend.utils.roller import UnifiedDice, RollResultFormatting, SolveMode, RollException
@@ -31,7 +32,7 @@ class InfoCog(commands.Cog):
         """
         Info about the bot.
         """
-        embed = embed_template("Bot Info")
+        embed = embed_template(f"Rollplayer v{version} Info")
         embed.add_field(name="Python version", value=sys.version)
         embed.add_field(name="discord.py version", value=discord.__version__)
         await interaction.response.send_message(embed=embed, ephemeral=True)

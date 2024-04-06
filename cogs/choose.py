@@ -33,9 +33,9 @@ class ChooseCog(commands.Cog):
         Parameters
         ------------
         options: str
-            A list of options, split by |s.
+            A list of options, split by commas.
         """
-        option_list = options.split("|")
+        option_list = options.split(",")
         option_list = [x.strip() for x in option_list]
         await interaction.response.send_message(embed=embed_template(f"let's pick... {random.choice(option_list)}."))
 
