@@ -16,6 +16,8 @@ from discord.ext import commands
 from tinydb import Query
 
 
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 class GamesCog(commands.GroupCog, group_name="game"):
     def __init__(self, client):
         self.client = client
