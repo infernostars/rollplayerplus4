@@ -3,10 +3,8 @@ import random
 from typing import Optional
 
 from backend.utils.logging import log
-from backend.utils.lerp import interpolate_color_hsv, normalize
-from backend.utils.roller import UnifiedDice, RollResultFormatting, SolveMode, RollException
+from backend.utils.language import list_format
 from backend.utils.embed_templates import embed_template, error_template
-from backend.utils.database import userdb, create_new_user
 
 import discord
 from discord import app_commands
@@ -26,7 +24,7 @@ class ChooseCog(commands.Cog):
     @app_commands.command(name="choose")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    async def choose(self, interaction: discord.Interaction, options: str):
+    async def choose(self, interaction: discord.Interaction, options: str, count: Optional[int], unique: Optional[bool]):
         """
         Rolls one or more dice.
 
@@ -34,12 +32,30 @@ class ChooseCog(commands.Cog):
         ------------
         options: str
             A list of options, split by commas.
+        count: Optional[int]
+        unique: Optional[bool]
+            If true, no option will be picked twice.
+
         """
+        if count is None:
+            count = 1
+        if unique is None:
+            unique = True
+
         option_list = options.split(",")
         option_list = [x.strip() for x in option_list]
-        await interaction.response.send_message(embed=embed_template(f"let's pick... {random.choice(option_list)}."))
-
-
+        if len(option_list) >= count:
+            if count > 0:
+                if unique:
+                    await interaction.response.send_message(
+                        embed=embed_template(f"let's pick... {list_format(random.sample(option_list, k=count))}."))
+                else:
+                    await interaction.response.send_message(
+                        embed=embed_template(f"let's pick... {list_format(random.choices(option_list,k=count))}."))
+            else:
+                await interaction.response.send_message(embed=error_template("Asked for zero or negative choices!"))
+        else:
+            await interaction.response.send_message(embed=error_template("Asked for too many choices!"))
 
 # The `setup` function is required for the cog to work
 # Don't change anything in this function, except for the
