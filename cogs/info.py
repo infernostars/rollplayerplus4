@@ -5,10 +5,7 @@ from typing import Optional
 
 from backend.config import version
 from backend.utils.logging import log
-from backend.utils.lerp import interpolate_color_hsv, normalize
-from backend.utils.roller import UnifiedDice, RollResultFormatting, SolveMode, RollException
 from backend.utils.embed_templates import embed_template, error_template
-from backend.utils.database import userdb, create_new_user
 
 import discord
 from discord import app_commands

@@ -53,6 +53,11 @@ class OperationEnum(StrEnum):
     MULTIPLY = '*'
     DIVIDE = '/'
 
+class FormatEnum(StrEnum):
+    LIST = 'l'
+    SUM = 's'
+    GREATER = '>'
+    LESS = '<'
 
 class RollException(BaseException):
     def __init__(self, information):
@@ -246,26 +251,93 @@ class BasicDice:
 
         return BasicDice(count, start, end)
 
-
-class RollResultFormatting(StrEnum):
+class FormatType(StrEnum):
     FORMAT_DEFAULT = auto()
     FORMAT_SUM = auto()
     FORMAT_LIST = auto()
     FORMAT_LIST_SPLIT = auto()
 
+class ThresholdType(StrEnum):
+    GREATER = auto()
+    LESS = auto()
+
+class Threshold:
+    def __init__(self, limit: int, threshold_type: ThresholdType):
+        self.limit = limit
+        self.threshold_type = threshold_type
+
+    def passing(self, number):
+        if self.threshold_type == ThresholdType.GREATER:
+            return number >= self.limit
+        elif self.threshold_type == ThresholdType.LESS:
+            return number <= self.limit
+        else:
+            raise RollException("Invalid threshold type (how did you get here?)")
+
+class Format:
+    def __init__(self, format_type: FormatType, format_args = None, threshold: Threshold = None):
+        self.format_type = format_type
+        self.format_args = format_args
+        self.threshold = threshold
+
+    @classmethod
+    def parse(cls, expression):
+        formatting = Format(FormatType.FORMAT_DEFAULT, 20, None)
+        format_regex = r'(' + '|'.join(re.escape(op.value) for op in FormatEnum) + r')'
+        strip, *formats = re.split(format_regex, expression)
+        idx = 0
+        while idx < len(formats):
+            format_char = formats[idx]
+            if idx == len(formats) - 1:
+                arg = False
+            else:
+                arg = formats[idx + 1]
+                if re.match(format_regex, arg):
+                    arg = False
+            match format_char:
+                case FormatEnum.LIST:
+                    if arg:
+                        formatting.format_type = FormatType.FORMAT_LIST_SPLIT
+                        try:
+                            formatting.format_args = int(arg)
+                        except ValueError:
+                            raise RollException("Attempted to split with non-integer")
+                    else:
+                        formatting.format_type = FormatType.FORMAT_LIST
+                case FormatEnum.SUM:
+                    formatting.format_type = FormatType.FORMAT_SUM
+                case FormatEnum.GREATER:
+                    if arg:
+                        try:
+                            formatting.threshold = Threshold(int(arg), ThresholdType.GREATER)
+                        except ValueError:
+                            raise RollException("Attempted to use > with non-integer")
+                    else:
+                        raise RollException("'Greater than' needs a number to work")
+                case FormatEnum.LESS:
+                    if arg:
+                        try:
+                            formatting.threshold = Threshold(int(arg), ThresholdType.LESS)
+                        except ValueError:
+                            raise RollException("Attempted to use < with non-integer")
+                    else:
+                        raise RollException("'Less than' needs a number to work")
+            idx += 2 if arg else 1
+        return strip, formatting #temporary!!!!!!!!!
+
 
 class RollResult:
-    def __init__(self, roll_string: str, rolls: list[int], original_rolls: list[int], threshold: Optional[int] = None):
+    def __init__(self, roll_string: str, rolls: list[int], original_rolls: list[int]):
         self.roll_string = roll_string
         self.rolls = rolls
         self.original_rolls = original_rolls
-        self.threshold = threshold
+        self.threshold = None
 
     def _format_numbers(self, numbers: list[int]):
         # Convert numbers close to an integer to int, then to string
         rounded_nums = [int(x) if abs(x - round(x)) < 0.000000001 else x for x in numbers]
         if self.threshold is not None:
-            return [f'**{x}**' if x >= self.threshold else str(x) for x in rounded_nums]
+            return [f'**{x}**' if self.threshold.passing(x) else str(x) for x in rounded_nums]
         else:
             return [str(x) for x in rounded_nums]
 
@@ -295,66 +367,66 @@ class RollResult:
     def __repr__(self):
         return f"┏━━━━ {self.roll_string} ━━━━ \n┃ {self._format_and_split_rolls__repr__(self.rolls, 20)}\n┃ sum: {self._format_sum(self.rolls)}"
 
-    def format(self, format: list[list[RollResultFormatting, Any]]) -> List[tuple[str, str]]:
+    def format(self, formatting: Format) -> List[tuple[str, str]]:
         # roll_icon = "<:roll_icon:1223801360273903656>"
         roll_icon = ""
 
         results = []
-        for formatting in format:
-            format_type = formatting[0]
-            format_args = formatting[1] if len(formatting) > 1 else None
+        format_type = formatting.format_type
+        format_args = formatting.format_args
+        self.threshold = formatting.threshold
 
-            if format_type == RollResultFormatting.FORMAT_DEFAULT:
+        if format_type == FormatType.FORMAT_DEFAULT:
+            results.append((
+                f"{roll_icon} You rolled a {self.roll_string} and got...",
+                self._format_rolls(self.rolls) + (f" (sum: {self._format_sum(self.rolls)})" if len(self.rolls) > 1 else "")
+            ))
+            if self.rolls != self.original_rolls:
                 results.append((
-                    f"{roll_icon} You rolled a {self.roll_string} and got...",
-                    self._format_rolls(self.rolls)
+                    f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
+                    self._format_rolls(self.original_rolls) + (f" (sum: {self._format_sum(self.original_rolls)})" if len(self.original_rolls) > 1 else "")
                 ))
-                if self.rolls != self.original_rolls:
-                    results.append((
-                        f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
-                        self._format_rolls(self.original_rolls)
-                    ))
-            elif format_type == RollResultFormatting.FORMAT_SUM:
+        elif format_type == FormatType.FORMAT_SUM:
+            results.append((
+                f"{roll_icon} You rolled a {self.roll_string} and got...",
+                self._format_sum(self.rolls)
+            ))
+            if self.rolls != self.original_rolls:
                 results.append((
-                    f"{roll_icon} You rolled a {self.roll_string} and got...",
-                    self._format_sum(self.rolls)
+                    f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
+                    self._format_sum(self.original_rolls)
                 ))
-                if self.rolls != self.original_rolls:
-                    results.append((
-                        f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
-                        self._format_sum(self.original_rolls)
-                    ))
-            elif format_type == RollResultFormatting.FORMAT_LIST:
+        elif format_type == FormatType.FORMAT_LIST:
+            results.append((
+                f"{roll_icon} You rolled a {self.roll_string} and got...",
+                self._format_rolls(self.rolls)
+            ))
+            if self.rolls != self.original_rolls:
                 results.append((
-                    f"{roll_icon} You rolled a {self.roll_string} and got...",
-                    self._format_rolls(self.rolls)
+                    f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
+                    self._format_rolls(self.original_rolls)
                 ))
-                if self.rolls != self.original_rolls:
-                    results.append((
-                        f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
-                        self._format_rolls(self.original_rolls)
-                    ))
-            elif format_type == RollResultFormatting.FORMAT_LIST_SPLIT:
+        elif format_type == FormatType.FORMAT_LIST_SPLIT:
+            results.append((
+                f"{roll_icon} You rolled a {self.roll_string} and got...",
+                self._format_and_split_rolls(self.rolls, format_args)
+            ))
+            if self.rolls != self.original_rolls:
                 results.append((
-                    f"{roll_icon} You rolled a {self.roll_string} and got...",
-                    self._format_and_split_rolls(self.rolls, format_args)
+                    f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
+                    self._format_and_split_rolls(self.original_rolls, format_args)
                 ))
-                if self.rolls != self.original_rolls:
-                    results.append((
-                        f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
-                        self._format_and_split_rolls(self.original_rolls, format_args)
-                    ))
-            else:
-                # base case
+        else:
+            # base case
+            results.append((
+                f"{roll_icon} You rolled a {self.roll_string} and got...",
+                self._format_rolls(self.rolls)
+            ))
+            if self.rolls != self.original_rolls:
                 results.append((
-                    f"{roll_icon} You rolled a {self.roll_string} and got...",
-                    self._format_rolls(self.rolls)
+                    f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
+                    self._format_rolls(self.original_rolls)
                 ))
-                if self.rolls != self.original_rolls:
-                    results.append((
-                        f"{roll_icon} You rolled a {self.roll_string} and without modifiers got...",
-                        self._format_rolls(self.original_rolls)
-                    ))
 
         return results
 

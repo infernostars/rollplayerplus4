@@ -3,7 +3,7 @@ from typing import Optional
 
 from backend.utils.logging import log
 from backend.utils.lerp import interpolate_color_hsv, normalize
-from backend.utils.roller import UnifiedDice, RollResultFormatting, SolveMode, RollException
+from backend.utils.roller import UnifiedDice, FormatType, SolveMode, RollException, Format
 from backend.utils.embed_templates import embed_template, error_template
 from backend.utils.database import userdb, create_new_user
 
@@ -24,15 +24,9 @@ class RollCog(commands.Cog):
         log.info("Cog: rolling loaded")
 
     @app_commands.command(name="roll")
-    @app_commands.choices(formatting=[
-        app_commands.Choice(name="Default formatting", value="format_default"),
-        app_commands.Choice(name="Sum only", value="format_sum"),
-        app_commands.Choice(name="List only", value="format_list"),
-        app_commands.Choice(name="List only (split at every 20 rolls)", value="format_list_split"),
-    ])
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    async def roll(self, interaction: discord.Interaction, rolls: str, formatting: Optional[app_commands.Choice[str]]):
+    async def roll(self, interaction: discord.Interaction, rolls: Optional[str]):
         """
         Rolls one or more dice.
 
@@ -40,8 +34,6 @@ class RollCog(commands.Cog):
         ------------
         rolls: str
             The rolls to roll, separated by spaces. For example: "1d100 2d20 1d6".
-        formatting: Optional[app_commands.Choice[RollResultFormatting]]
-            The format to show the results in. Defaults to a list view followed by sum.
         """
         if not rolls:
             rolls = "1d100"
@@ -52,24 +44,22 @@ class RollCog(commands.Cog):
         results = []
         result_mins = []
         result_maxs = []
+        formats = []
 
         # Roll each expression and collect the results
         for roll_expression in roll_expressions:
             try:
-                result = UnifiedDice.new(roll_expression).solve(SolveMode.RANDOM)
-                result_min = UnifiedDice.new(roll_expression).solve(SolveMode.MIN)
-                result_max = UnifiedDice.new(roll_expression).solve(SolveMode.MAX)
+                stripped_expression, formatting = Format.parse(roll_expression)
+                result = UnifiedDice.new(stripped_expression).solve(SolveMode.RANDOM)
+                result_min = UnifiedDice.new(stripped_expression).solve(SolveMode.MIN)
+                result_max = UnifiedDice.new(stripped_expression).solve(SolveMode.MAX)
+                formats.append(formatting)
                 results.append(result)
                 result_mins.append(result_min)
                 result_maxs.append(result_max)
             except RollException as exc:
                 await interaction.response.send_message(embed=error_template(exc.information))
                 return
-
-        try:
-            format = RollResultFormatting(formatting.value)
-        except:
-            format = RollResultFormatting.FORMAT_DEFAULT
 
         embed = embed_template(f"--- {' '.join(roll_expressions)} ---")
 
@@ -81,16 +71,16 @@ class RollCog(commands.Cog):
 
         for i, result in enumerate(results):
             try:
-                for tuple in result.format([[format, 20]]):
-                    if len(tuple[1]) > 1024:
+                for tup in result.format(formats[i]):
+                    if len(tup[1]) > 1024:
                         raise RollException("Roll result too long.")
-                    embed.add_field(name=f"{tuple[0]}", value=tuple[1], inline=False)
+                    embed.add_field(name=f"{tup[0]}", value=tup[1], inline=False)
             except RollException:
                 embed.add_field(
                     name=f"{roll_expressions[i]} - Your result was too long, so the format changed to sum only.",
                     value="", inline=False)
-                for tuple in result.format([[RollResultFormatting.FORMAT_SUM, 20]]):
-                    embed.add_field(name=tuple[0], value=tuple[1])
+                for tup in result.format([[FormatType.FORMAT_SUM, 20]]):
+                    embed.add_field(name=f"{tup[0]}", value=tup[1])
 
         await interaction.response.send_message(embed=embed)
 
@@ -132,21 +122,22 @@ That should be all you need to know about rolling with Rollplayer!""", ephemeral
         results = []
         result_mins = []
         result_maxs = []
+        formats = []
 
         # Roll each expression and collect the results
         for roll_expression in roll_expressions:
             try:
-                result = UnifiedDice.new(roll_expression).solve(SolveMode.RANDOM)
-                result_min = UnifiedDice.new(roll_expression).solve(SolveMode.MIN)
-                result_max = UnifiedDice.new(roll_expression).solve(SolveMode.MAX)
+                stripped_expression, formatting = Format.parse(roll_expression)
+                result = UnifiedDice.new(stripped_expression).solve(SolveMode.RANDOM)
+                result_min = UnifiedDice.new(stripped_expression).solve(SolveMode.MIN)
+                result_max = UnifiedDice.new(stripped_expression).solve(SolveMode.MAX)
+                formats.append(formatting)
                 results.append(result)
                 result_mins.append(result_min)
                 result_maxs.append(result_max)
             except RollException as exc:
                 await ctx.send(embed=error_template(exc.information))
                 return
-
-        format = RollResultFormatting.FORMAT_DEFAULT  # hardcoded, since you can't feed in a format
 
         embed = embed_template(f"--- {' '.join(roll_expressions)} ---")
 
@@ -158,17 +149,16 @@ That should be all you need to know about rolling with Rollplayer!""", ephemeral
 
         for i, result in enumerate(results):
             try:
-                for tuple in result.format([[format, 20]]):
-                    if len(tuple[1]) > 1024:
+                for tup in result.format(formats[i]):
+                    if len(tup[1]) > 1024:
                         raise RollException("Roll result too long.")
-                    embed.add_field(name=f"{tuple[0]}", value=tuple[1], inline=False)
-            except Exception as e:
-                print(e)
+                    embed.add_field(name=f"{tup[0]}", value=tup[1], inline=False)
+            except RollException:
                 embed.add_field(
                     name=f"{roll_expressions[i]} - Your result was too long, so the format changed to sum only.",
                     value="", inline=False)
-                for tuple in result.format([[RollResultFormatting.FORMAT_SUM, 20]]):
-                    embed.add_field(name=tuple[0], value=tuple[1])
+                for tup in result.format([[FormatType.FORMAT_SUM, 20]]):
+                    embed.add_field(name=tup[0], value=tup[1])
 
         await ctx.send(embed=embed)
 
