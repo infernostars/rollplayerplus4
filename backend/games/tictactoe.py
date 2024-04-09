@@ -105,7 +105,7 @@ class TicTacToe(discord.ui.View):
                     else:
                         mark = self.board[x][y]
                         row = 1
-                    if mark is not 0 and row >= self.row:
+                    if mark != 0 and row >= self.row:
                         return mark
                     x, y = x + dx, y + dy
 
