@@ -10,3 +10,9 @@ def list_format(input_list):
         return f"{input_list[0]} and {input_list[1]}"
     else:
         return ", ".join(input_list[:-1])+f", and {input_list[-1]}"
+
+def s(number):
+    """
+    Plural. "s" if the number is not 1, else "".
+    """
+    return "" if number == 1 else "s"

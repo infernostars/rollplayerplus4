@@ -259,12 +259,15 @@ class RollResult:
         self.roll_string = roll_string
         self.rolls = rolls
         self.original_rolls = original_rolls
-        self.threshold = 50 #threshold
+        self.threshold = threshold
 
     def _format_numbers(self, numbers: list[int]):
         # Convert numbers close to an integer to int, then to string
         rounded_nums = [int(x) if abs(x - round(x)) < 0.000000001 else x for x in numbers]
-        return [f'**{x}**' if x >= self.threshold else str(x) for x in rounded_nums]
+        if self.threshold is not None:
+            return [f'**{x}**' if x >= self.threshold else str(x) for x in rounded_nums]
+        else:
+            return [str(x) for x in rounded_nums]
 
     def _format_rolls(self, rolls: list[int]):
         # Convert numbers close to an integer to int, then to string

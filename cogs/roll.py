@@ -85,7 +85,7 @@ class RollCog(commands.Cog):
                     if len(tuple[1]) > 1024:
                         raise RollException("Roll result too long.")
                     embed.add_field(name=f"{tuple[0]}", value=tuple[1], inline=False)
-            except:
+            except RollException:
                 embed.add_field(
                     name=f"{roll_expressions[i]} - Your result was too long, so the format changed to sum only.",
                     value="", inline=False)
@@ -114,7 +114,7 @@ That should be all you need to know about rolling with Rollplayer!""", ephemeral
 
     # Legacy function for r!roll support
     @commands.command("roll")
-    async def roll(self, ctx: commands.Context, rolls: str):
+    async def classic_roll(self, ctx: commands.Context, rolls: str=""):
         """
         Rolls one or more dice.
 
@@ -162,7 +162,8 @@ That should be all you need to know about rolling with Rollplayer!""", ephemeral
                     if len(tuple[1]) > 1024:
                         raise RollException("Roll result too long.")
                     embed.add_field(name=f"{tuple[0]}", value=tuple[1], inline=False)
-            except:
+            except Exception as e:
+                print(e)
                 embed.add_field(
                     name=f"{roll_expressions[i]} - Your result was too long, so the format changed to sum only.",
                     value="", inline=False)
