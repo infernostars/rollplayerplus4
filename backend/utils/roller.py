@@ -255,26 +255,32 @@ class RollResultFormatting(StrEnum):
 
 
 class RollResult:
-    def __init__(self, roll_string: str, rolls: list[int], original_rolls: list[int]):
+    def __init__(self, roll_string: str, rolls: list[int], original_rolls: list[int], threshold: Optional[int] = None):
         self.roll_string = roll_string
         self.rolls = rolls
         self.original_rolls = original_rolls
+        self.threshold = 50 #threshold
+
+    def _format_numbers(self, numbers: list[int]):
+        # Convert numbers close to an integer to int, then to string
+        rounded_nums = [int(x) if abs(x - round(x)) < 0.000000001 else x for x in numbers]
+        return [f'**{x}**' if x >= self.threshold else str(x) for x in rounded_nums]
 
     def _format_rolls(self, rolls: list[int]):
         # Convert numbers close to an integer to int, then to string
-        formatted_nums = [str(int(x)) if abs(x - round(x)) < 0.000000001 else str(x) for x in rolls]
+        formatted_nums = self._format_numbers(rolls)
         # Join the stringified numbers with commas
         return ', '.join(formatted_nums)
 
     def _format_and_split_rolls(self, rolls: list[int], n: int):
         # Convert numbers close to an integer to int, then to string
-        formatted_nums = [str(int(x)) if abs(x - round(x)) < 0.000000001 else str(x) for x in rolls]
+        formatted_nums = self._format_numbers(rolls)
         # Split the list into chunks of size n, join each chunk with commas, then join chunks with newlines
         return '\n'.join(', '.join(formatted_nums[i:i + n]) for i in range(0, len(formatted_nums), n))
 
     def _format_and_split_rolls__repr__(self, rolls: list[int], n: int):
         # Convert numbers close to an integer to int, then to string
-        formatted_nums = [str(int(x)) if abs(x - round(x)) < 0.000000001 else str(x) for x in rolls]
+        formatted_nums = self._format_numbers(rolls)
         # Split the list into chunks of size n, join each chunk with commas, then join chunks with newlines
         return '\n┃ '.join(', '.join(formatted_nums[i:i + n]) for i in range(0, len(formatted_nums), n))
 
