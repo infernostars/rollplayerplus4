@@ -18,7 +18,6 @@ class RollCog(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-
     # Use @command.Cog.listener() for an event-listener (on_message, on_ready, etc.)
     @commands.Cog.listener()
     async def on_ready(self):
@@ -74,7 +73,8 @@ class RollCog(commands.Cog):
 
         embed = embed_template(f"--- {' '.join(roll_expressions)} ---")
 
-        normalized_results = [normalize(sum(mini.rolls), sum(maxi.rolls), sum(result.rolls)) for mini, maxi, result in zip(result_mins, result_maxs, results)]
+        normalized_results = [normalize(sum(mini.rolls), sum(maxi.rolls), sum(result.rolls)) for mini, maxi, result in
+                              zip(result_mins, result_maxs, results)]
         normalized_color_value = sum(normalized_results) / len(normalized_results)
 
         embed.color = interpolate_color_hsv(normalized_color_value)
@@ -86,7 +86,9 @@ class RollCog(commands.Cog):
                         raise RollException("Roll result too long.")
                     embed.add_field(name=f"{tuple[0]}", value=tuple[1], inline=False)
             except:
-                embed.add_field(name=f"{roll_expressions[i]} - Your result was too long, so the format changed to sum only.", value="", inline=False)
+                embed.add_field(
+                    name=f"{roll_expressions[i]} - Your result was too long, so the format changed to sum only.",
+                    value="", inline=False)
                 for tuple in result.format([[RollResultFormatting.FORMAT_SUM, 20]]):
                     embed.add_field(name=tuple[0], value=tuple[1])
 
@@ -109,6 +111,65 @@ Then you have the i operator, the most complex one. It lets you choose which rol
 - `3d100i1,3:+20;2,-5` will do the same, and then subtract 5 from the second.
 Lastly, you can roll multiple different sets of dice in the same command (like `5d100+5 5d100`).
 That should be all you need to know about rolling with Rollplayer!""", ephemeral=True)
+
+    # Legacy function for r!roll support
+    @commands.command("roll")
+    async def roll(self, ctx: commands.Context, rolls: str):
+        """
+        Rolls one or more dice.
+
+        Parameters
+        ------------
+        rolls: str
+            The rolls to roll, separated by spaces. For example: "1d100 2d20 1d6".
+        """
+        if not rolls:
+            rolls = "1d100"
+
+        # Split the input string into individual roll expressions
+        roll_expressions = rolls.split()
+
+        results = []
+        result_mins = []
+        result_maxs = []
+
+        # Roll each expression and collect the results
+        for roll_expression in roll_expressions:
+            try:
+                result = UnifiedDice.new(roll_expression).solve(SolveMode.RANDOM)
+                result_min = UnifiedDice.new(roll_expression).solve(SolveMode.MIN)
+                result_max = UnifiedDice.new(roll_expression).solve(SolveMode.MAX)
+                results.append(result)
+                result_mins.append(result_min)
+                result_maxs.append(result_max)
+            except RollException as exc:
+                await ctx.send(embed=error_template(exc.information))
+                return
+
+        format = RollResultFormatting.FORMAT_DEFAULT  # hardcoded, since you can't feed in a format
+
+        embed = embed_template(f"--- {' '.join(roll_expressions)} ---")
+
+        normalized_results = [normalize(sum(mini.rolls), sum(maxi.rolls), sum(result.rolls)) for mini, maxi, result in
+                              zip(result_mins, result_maxs, results)]
+        normalized_color_value = sum(normalized_results) / len(normalized_results)
+
+        embed.color = interpolate_color_hsv(normalized_color_value)
+
+        for i, result in enumerate(results):
+            try:
+                for tuple in result.format([[format, 20]]):
+                    if len(tuple[1]) > 1024:
+                        raise RollException("Roll result too long.")
+                    embed.add_field(name=f"{tuple[0]}", value=tuple[1], inline=False)
+            except:
+                embed.add_field(
+                    name=f"{roll_expressions[i]} - Your result was too long, so the format changed to sum only.",
+                    value="", inline=False)
+                for tuple in result.format([[RollResultFormatting.FORMAT_SUM, 20]]):
+                    embed.add_field(name=tuple[0], value=tuple[1])
+
+        await ctx.send(embed=embed)
 
 
 # The `setup` function is required for the cog to work
