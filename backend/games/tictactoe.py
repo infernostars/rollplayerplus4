@@ -25,6 +25,15 @@ class TicTacToeButton(discord.ui.Button['TicTacToe']):
             return
 
         if view.current_player == view.X:
+            if view.players[0] is None:
+                view.players[0] = interaction.user
+            else:
+                if interaction.user != view.players[0]:
+                    if interaction.user == view.players[1]:
+                        await interaction.response.send_message("It's not your turn!",ephemeral=True)
+                    else:
+                        await interaction.response.send_message(f"{view.players[0].mention} and {view.players[1].mention} are already playing! Please wait for another game.", ephemeral=True)
+                    return
             self.style = discord.ButtonStyle.danger
             self.label = 'X'
             self.disabled = True
@@ -32,6 +41,15 @@ class TicTacToeButton(discord.ui.Button['TicTacToe']):
             view.current_player = view.O
             content = "It's now O's turn."
         else:
+            if view.players[1] is None:
+                view.players[1] = interaction.user
+            else:
+                if interaction.user != view.players[1]:
+                    if interaction.user == view.players[0]:
+                        await interaction.response.send_message("It's not your turn!",ephemeral=True)
+                    else:
+                        await interaction.response.send_message(f"{view.players[1].mention} and {view.players[0].mention} are already playing! Please wait for another game.", ephemeral=True)
+                    return
             self.style = discord.ButtonStyle.primary
             self.label = 'O'
             self.disabled = True
@@ -70,6 +88,7 @@ class TicTacToe(discord.ui.View):
         self.current_player = self.X
         self.board = [x[:] for x in [[0] * size] * size]
         self.row = row
+        self.players = [None, None]
 
         # Our board is made up of 3-5 by 3-5 TicTacToeButtons
         # The TicTacToeButton maintains the callbacks and helps steer
