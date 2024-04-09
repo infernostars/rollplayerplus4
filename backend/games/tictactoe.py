@@ -30,14 +30,14 @@ class TicTacToeButton(discord.ui.Button['TicTacToe']):
             self.disabled = True
             view.board[self.y][self.x] = view.X
             view.current_player = view.O
-            content = "It is now O's turn"
+            content = "It's now O's turn."
         else:
-            self.style = discord.ButtonStyle.success
+            self.style = discord.ButtonStyle.primary
             self.label = 'O'
             self.disabled = True
             view.board[self.y][self.x] = view.O
             view.current_player = view.X
-            content = "It is now X's turn"
+            content = "It's now X's turn."
 
         winner = view.check_board_winner()
         if winner is not None:
@@ -64,11 +64,12 @@ class TicTacToe(discord.ui.View):
     O = 1
     Tie = 2
 
-    def __init__(self, size):
+    def __init__(self, size, row):
         super().__init__()
         self.size = size
         self.current_player = self.X
         self.board = [x[:] for x in [[0] * size] * size]
+        self.row = row
 
         # Our board is made up of 3-5 by 3-5 TicTacToeButtons
         # The TicTacToeButton maintains the callbacks and helps steer
@@ -79,33 +80,34 @@ class TicTacToe(discord.ui.View):
 
     # This method checks for the board winner -- it is used by the TicTacToeButton
     def check_board_winner(self):
-        for across in self.board:
-            value = sum(across)
-            if value == self.size:
-                return self.O
-            elif value == self.size:
-                return self.X
-
-        # Check vertical
-        for line in range(self.size):
-            value = sum([self.board[i][line] for i in range(self.size)])
-            if value == self.size:
-                return self.O
-            elif value == -self.size:
-                return self.X
-
-        # Check diagonals
-        diag = sum([self.board[i][self.size-1-i] for i in range(self.size)])
-        if diag == self.size:
-            return self.O
-        elif diag == -self.size:
-            return self.X
-
-        diag = sum([self.board[i][i] for i in range(self.size)])
-        if diag == self.size:
-            return self.O
-        elif diag == -self.size:
-            return self.X
+        """Returns the 'mark' of the player with a row of the given length."""
+        width = range(len(self.board))
+        height = range(len(self.board[0]))
+        # Do four scans across the board -- right, down, and diagonals.
+        for dx, dy in [(0, 1), (1, 0), (1, 1), (1, -1)]:
+            edges = []
+            if dx > 0:
+                # scanning right, start from left edge
+                edges += [(0, y) for y in height]
+            if dy > 0:
+                # scanning down, start from top edge
+                edges += [(x, 0) for x in width]
+            if dy < 0:
+                # scanning up, start from bottom edge
+                edges += [(x, height[-1]) for x in width]
+            for ex, ey in edges:
+                mark = 0
+                row = 0
+                x, y = ex, ey
+                while x in width and y in height:
+                    if self.board[x][y] == mark:
+                        row += 1
+                    else:
+                        mark = self.board[x][y]
+                        row = 1
+                    if mark is not 0 and row >= self.row:
+                        return mark
+                    x, y = x + dx, y + dy
 
         # If we're here, we need to check if a tie was made
         if all(i != 0 for row in self.board for i in row):
