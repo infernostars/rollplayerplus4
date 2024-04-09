@@ -36,7 +36,7 @@ bot = RollplayerBot(intents=intents, command_prefix="r!")  # Setting prefix
 # This is what gets run when the bot stars
 @bot.event
 async def on_ready():
-    log.info(f"Patron Saint of Vorigaria, version {version}, online. [logged in as {bot.user}")
+    log.info(f"Patron Saint of Vorigaria, version {version}, online. [logged in as {bot.user}]")
     await bot.change_presence(activity=discord.Game(name=presence))
 
 
