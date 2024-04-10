@@ -31,7 +31,7 @@ class TestCog(commands.Cog):
         """
         Test command ooooOOOOOOOOOOOOOOOOOOOOOOOOOOOOooooooooOOOOOoOOOOOOOOOOOooooOOOOOOOoooOOOOOOOooooooo
         """
-        await interaction.response.send_message("Example contents", view=TicTacToe(3))
+        await interaction.response.send_message("what did you expect")
 
 
 # The `setup` function is required for the cog to work
