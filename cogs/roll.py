@@ -9,7 +9,7 @@ from backend.utils.database import userdb, create_new_user
 import discord
 from discord import app_commands
 from discord.ext import commands
-from rollplayerlib import
+from rollplayerlib import Format, UnifiedDice, SolveMode, RollException, FormatType
 
 class RollCog(commands.Cog):
     def __init__(self, client):
