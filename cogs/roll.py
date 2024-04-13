@@ -3,16 +3,13 @@ from typing import Optional
 
 from backend.utils.logging import log
 from backend.utils.lerp import interpolate_color_hsv, normalize
-from backend.utils.roller import UnifiedDice, FormatType, SolveMode, RollException, Format
 from backend.utils.embed_templates import embed_template, error_template
 from backend.utils.database import userdb, create_new_user
 
 import discord
 from discord import app_commands
 from discord.ext import commands
-
-from tinydb import Query
-
+from rollplayerlib import
 
 class RollCog(commands.Cog):
     def __init__(self, client):
@@ -109,6 +106,7 @@ There are also format modifiers. These include:
 - *s* will only display the sum.
 - *>50* will highlight rolls that are at least 50.
 - *<50* will highlight rolls that are 50 or lower.
+- You can do the last two without a number, in which it will default to the maximum and minimum respectively.
 
 Lastly, you can roll multiple different sets of dice in the same command (like `5d100+5 5d100`).
 That should be all you need to know about rolling with Rollplayer!""", ephemeral=True)
