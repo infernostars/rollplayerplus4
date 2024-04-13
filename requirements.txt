@@ -2,4 +2,4 @@ tinydb~=4.8.0
 colorlog~=6.7.0
 discord~=2.4.0
 requests~=2.31.0
-rollplayerlib~=0.3.0
+rollplayerlib~=0.4.0
