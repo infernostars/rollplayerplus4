@@ -5,9 +5,11 @@ from typing import List
 from typing import Optional
 
 from backend.games.tictactoe import TicTacToe
+from backend.games.map import start_game
 from backend.config import version
 from backend.utils.logging import log
 from backend.utils.embed_templates import embed_template, error_template
+from backend.utils.language import list_format
 
 import discord
 from discord import app_commands
@@ -49,6 +51,13 @@ class GamesCog(commands.GroupCog, group_name="game"):
         else:
             await interaction.response.send_message("Pick a place to start!", view=TicTacToe(size, row))
 
+    """
+    @app_commands.command(name="map")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    async def map(self, interaction: discord.Interaction):
+        start_game(interaction)
+    """ #unfinished
 
 # The `setup` function is required for the cog to work
 # Don't change anything in this function, except for the
